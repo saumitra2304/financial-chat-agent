@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-dotenv
+openai-agents
+requests
+pymongo
+yfinance
+tiktoken
+pinecone-client
