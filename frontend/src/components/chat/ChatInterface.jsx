@@ -143,12 +143,12 @@ const ChatInterface = () => {
                   <Card className={`max-w-[70%] transition-all duration-300 hover:shadow-lg ${
                     message.role === 'user' 
                       ? 'bg-gradient-to-r from-purple-600/20 to-pink-600/20 border-purple-500/30 hover:shadow-purple-500/20 hover:border-purple-400/50' 
-                      : 'bg-gray-900/80 border-gray-700 hover:shadow-gray-500/10 hover:border-gray-600'
+                      : 'bg-gray-950/90 border-gray-800 hover:shadow-gray-500/20 hover:border-gray-700'
                   }`}>
                     <CardContent className="p-1.5 py-1">
                       {message.role === 'assistant' ? (
                         <div 
-                          className="markdown-content text-sm leading-tight text-gray-100"
+                          className="markdown-content text-sm leading-tight text-gray-200"
                           dangerouslySetInnerHTML={{ 
                             __html: marked.parse(message.content || '') 
                           }}
@@ -185,13 +185,13 @@ const ChatInterface = () => {
                     </Avatar>
                   </div>
                   
-                  <Card className="bg-gray-900/80 border-gray-700">
+                  <Card className="bg-gray-950/90 border-gray-800">
                     <CardContent className="p-1.5 py-1">
                       <div className="flex items-center space-x-2.5">
                         <div className="flex space-x-1">
-                          <div className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" />
-                          <div className="w-1 h-1 bg-pink-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}} />
-                          <div className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}} />
+                          <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" />
+                          <div className="w-1 h-1 bg-teal-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}} />
+                          <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}} />
                         </div>
                         <span className="text-xs text-gray-400">AI is thinking...</span>
                       </div>
@@ -209,7 +209,7 @@ const ChatInterface = () => {
       {/* Modern Floating Input */}
       <div className="pb-20">
         <div className="fixed bottom-3 left-1/2 transform -translate-x-1/2 w-full max-w-3xl px-4 z-50">
-          <Card className="bg-black/95 backdrop-blur-md border-gray-800 shadow-2xl rounded-full hover:shadow-purple-500/20 hover:border-purple-500/50 transition-all duration-300">
+          <Card className="bg-black/95 backdrop-blur-md border-gray-700 shadow-2xl rounded-full hover:shadow-blue-500/20 hover:border-blue-500/50 transition-all duration-300">
             <CardContent className="p-1 flex items-center space-x-2">
               <div className="flex-1 px-3">
                 <Input
@@ -226,16 +226,16 @@ const ChatInterface = () => {
               <div className="flex items-center space-x-2 pr-1">
                 {isLoading ? (
                   <div className="flex space-x-1 px-2">
-                    <div className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" />
-                    <div className="w-1 h-1 bg-pink-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}} />
-                    <div className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}} />
+                    <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" />
+                    <div className="w-1 h-1 bg-teal-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}} />
+                    <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}} />
                   </div>
                 ) : (
                   currentInput.trim() && (
                     <Button
                       onClick={handleSend}
                       size="sm"
-                      className="h-6 w-6 rounded-full p-0 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 shadow-lg hover:shadow-xl hover:shadow-purple-500/30 transition-all duration-300"
+                      className="h-6 w-6 rounded-full p-0 bg-gradient-to-r from-blue-500 to-teal-600 hover:from-blue-600 hover:to-teal-700 shadow-lg hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300"
                     >
                       <Send size={10} />
                     </Button>
