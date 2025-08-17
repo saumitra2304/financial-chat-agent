@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { MessageSquare, Plus } from "lucide-react";
+import { marked } from 'marked';
 import useChatStore from '@/stores/chatStore';
 import { Boxes } from '@/components/ui/background-boxes';
 
@@ -54,6 +55,122 @@ const ChatInterface = () => {
               transform: scale(1);
               opacity: 1;
             }
+          }
+          
+          .markdown-content {
+            line-height: 1.6;
+          }
+          
+          .markdown-content h1,
+          .markdown-content h2,
+          .markdown-content h3,
+          .markdown-content h4,
+          .markdown-content h5,
+          .markdown-content h6 {
+            color: #60a5fa;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            font-weight: 600;
+          }
+          
+          .markdown-content h1 { font-size: 1.5em; }
+          .markdown-content h2 { font-size: 1.3em; }
+          .markdown-content h3 { font-size: 1.2em; }
+          
+          .markdown-content p {
+            margin-bottom: 16px;
+          }
+          
+          .markdown-content ul,
+          .markdown-content ol {
+            margin-bottom: 16px;
+            padding-left: 20px;
+          }
+          
+          .markdown-content li {
+            margin-bottom: 8px;
+          }
+          
+          .markdown-content strong {
+            color: #fbbf24;
+            font-weight: 600;
+          }
+          
+          .markdown-content em {
+            color: #a78bfa;
+            font-style: italic;
+          }
+          
+          .markdown-content code {
+            background-color: rgba(55, 65, 81, 0.8);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #f59e0b;
+          }
+          
+          .markdown-content pre {
+            background-color: rgba(55, 65, 81, 0.8);
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 16px;
+          }
+          
+          .markdown-content pre code {
+            background: none;
+            padding: 0;
+          }
+          
+          .markdown-content blockquote {
+            border-left: 4px solid #60a5fa;
+            padding-left: 16px;
+            margin: 16px 0;
+            font-style: italic;
+            color: #d1d5db;
+          }
+          
+          .markdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+            background-color: rgba(31, 41, 55, 0.5);
+            border-radius: 8px;
+            overflow: hidden;
+          }
+          
+          .markdown-content th,
+          .markdown-content td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          }
+          
+          .markdown-content th {
+            background-color: rgba(55, 65, 81, 0.8);
+            font-weight: 600;
+            color: #60a5fa;
+          }
+          
+          .markdown-content tr:hover {
+            background-color: rgba(55, 65, 81, 0.3);
+          }
+          
+          .markdown-content a {
+            color: #60a5fa;
+            text-decoration: none;
+          }
+          
+          .markdown-content a:hover {
+            text-decoration: underline;
+          }
+          
+          .markdown-content hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            margin: 24px 0;
           }
         `}
       </style>
@@ -240,12 +357,26 @@ const ChatInterface = () => {
                   lineHeight: '1.5',
                   fontWeight: '400'
                 }}>
-                  <div style={{ 
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word'
-                  }}>
-                    {message.content}
-                  </div>
+                  {/* Render message content with markdown support for assistant */}
+                  {message.role === 'assistant' ? (
+                    <div 
+                      className="markdown-content"
+                      style={{ 
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word'
+                      }}
+                      dangerouslySetInnerHTML={{ 
+                        __html: marked.parse(message.content || '') 
+                      }}
+                    />
+                  ) : (
+                    <div style={{ 
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word'
+                    }}>
+                      {message.content}
+                    </div>
+                  )}
                 </div>
 
                 {/* User Avatar - minimal */}

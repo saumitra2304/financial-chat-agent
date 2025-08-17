@@ -201,18 +201,18 @@ def get_margin_ratios(company_name: str) -> dict | None:
 		return None
 
 @function_tool
-def get_solvency_ratios(company_name: str) -> dict | None:
+def get_performance_ratios(company_name: str) -> dict | None:
 	"""
-	Fetches solvency ratios for a company using the PerformanceRatios API.
+	Fetches performance ratios for a company using the PerformanceRatios API.
 	Args:
 		company_name: The name of the company.
 	Returns:
-		Dictionary of solvency ratios, or None if not found.
+		Dictionary of performance ratios, or None if not found.
 	"""
 	
 	co_code = get_co_code(company_name, api_key)
 	if not co_code:
-		print(f"Error: Could not find company code for '{company_name}' in solvency ratios fetch.")
+		print(f"Error: Could not find company code for '{company_name}' in performance ratios fetch.")
 		return None
 	url = f"{BASE_URL}/api/PerformanceRatios/{int(co_code)}/{API_SUFFIX}"
 	headers = {"Authorization": f"Bearer {api_key}"}
@@ -350,6 +350,33 @@ def get_growth_ratios(company_name: str) -> dict | None:
 		print(f"Error: Could not find company code for '{company_name}' in growth ratios fetch.")
 		return None
 	url = f"{BASE_URL}/api/GrowthRatio/{int(co_code)}/{API_SUFFIX}"
+	headers = {"Authorization": f"Bearer {api_key}"}
+	try:
+		response = requests.get(url, headers=headers, timeout=15)
+		response.raise_for_status()
+		result = response.json()
+		if result.get("success") and result.get("data"):
+			return result["data"]
+		return None
+	except Exception as e:
+		print(f"Error fetching growth ratios: {e}")
+		return None
+
+@function_tool
+def get_solvency_ratios(company_name: str) -> dict | None:
+	"""
+	Fetches solvency ratios for a company using the SolvencyRatios API.
+	Args:
+		company_name: The name of the company.
+	Returns:
+		Dictionary of solvency ratios, or None if not found.
+	"""
+	
+	co_code = get_co_code(company_name, api_key)
+	if not co_code:
+		print(f"Error: Could not find company code for '{company_name}' in solvency ratios fetch.")
+		return None
+	url = f"{BASE_URL}/api/RatiosSolvency/{int(co_code)}/{API_SUFFIX}"
 	headers = {"Authorization": f"Bearer {api_key}"}
 	try:
 		response = requests.get(url, headers=headers, timeout=15)
