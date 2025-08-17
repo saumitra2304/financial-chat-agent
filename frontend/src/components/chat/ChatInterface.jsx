@@ -1,8 +1,15 @@
 import React, { useEffect, useRef } from 'react';
-import { MessageSquare, Plus } from "lucide-react";
+import { MessageSquare, Plus, Send, Bot, User, Sparkles } from "lucide-react";
 import { marked } from 'marked';
 import useChatStore from '@/stores/chatStore';
-import { Boxes } from '@/components/ui/background-boxes';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 const ChatInterface = () => {
   const {
@@ -43,548 +50,203 @@ const ChatInterface = () => {
   };
 
   return (
-    <>
-      <style>
-        {`
-          @keyframes bounce {
-            0%, 80%, 100% {
-              transform: scale(0.8);
-              opacity: 0.5;
-            }
-            40% {
-              transform: scale(1);
-              opacity: 1;
-            }
-          }
-          
-          .markdown-content {
-            line-height: 1.6;
-          }
-          
-          .markdown-content h1,
-          .markdown-content h2,
-          .markdown-content h3,
-          .markdown-content h4,
-          .markdown-content h5,
-          .markdown-content h6 {
-            color: #60a5fa;
-            margin-top: 24px;
-            margin-bottom: 12px;
-            font-weight: 600;
-          }
-          
-          .markdown-content h1 { font-size: 1.5em; }
-          .markdown-content h2 { font-size: 1.3em; }
-          .markdown-content h3 { font-size: 1.2em; }
-          
-          .markdown-content p {
-            margin-bottom: 16px;
-          }
-          
-          .markdown-content ul,
-          .markdown-content ol {
-            margin-bottom: 16px;
-            padding-left: 20px;
-          }
-          
-          .markdown-content li {
-            margin-bottom: 8px;
-          }
-          
-          .markdown-content strong {
-            color: #fbbf24;
-            font-weight: 600;
-          }
-          
-          .markdown-content em {
-            color: #a78bfa;
-            font-style: italic;
-          }
-          
-          .markdown-content code {
-            background-color: rgba(55, 65, 81, 0.8);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            color: #f59e0b;
-          }
-          
-          .markdown-content pre {
-            background-color: rgba(55, 65, 81, 0.8);
-            padding: 16px;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin-bottom: 16px;
-          }
-          
-          .markdown-content pre code {
-            background: none;
-            padding: 0;
-          }
-          
-          .markdown-content blockquote {
-            border-left: 4px solid #60a5fa;
-            padding-left: 16px;
-            margin: 16px 0;
-            font-style: italic;
-            color: #d1d5db;
-          }
-          
-          .markdown-content table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 16px;
-            background-color: rgba(31, 41, 55, 0.5);
-            border-radius: 8px;
-            overflow: hidden;
-          }
-          
-          .markdown-content th,
-          .markdown-content td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-          }
-          
-          .markdown-content th {
-            background-color: rgba(55, 65, 81, 0.8);
-            font-weight: 600;
-            color: #60a5fa;
-          }
-          
-          .markdown-content tr:hover {
-            background-color: rgba(55, 65, 81, 0.3);
-          }
-          
-          .markdown-content a {
-            color: #60a5fa;
-            text-decoration: none;
-          }
-          
-          .markdown-content a:hover {
-            text-decoration: underline;
-          }
-          
-          .markdown-content hr {
-            border: none;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            margin: 24px 0;
-          }
-        `}
-      </style>
-      <div style={{
-        height: '100vh',
-        backgroundColor: '#000',
-        color: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative'
-      }}>
-      {/* Animated Background - Behind everything */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: -10,
-        opacity: 0.2,
-        overflow: 'hidden',
-        pointerEvents: 'none'
-      }}>
-        <Boxes />
-      </div>
-
-      {/* Header */}
-      <div style={{
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        backdropFilter: 'blur(20px)',
-        padding: '16px 24px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        position: 'relative',
-        zIndex: 20
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '8px',
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <MessageSquare size={16} color="white" strokeWidth={2} />
-          </div>
-          <div>
-            <h1 style={{ 
-              margin: 0, 
-              fontSize: '16px', 
-              fontWeight: '600',
-              color: '#ffffff',
-              letterSpacing: '-0.01em'
-            }}>
-              Financial Chat
-            </h1>
-            <p style={{ 
-              margin: 0, 
-              fontSize: '13px', 
-              color: 'rgba(255, 255, 255, 0.6)',
-              fontWeight: '400'
-            }}>
-              AI Assistant
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-950 to-black text-white flex flex-col">
+      {/* Fixed Header - Completely Fixed Position */}
+      <div className="fixed top-0 left-0 right-0 z-40 bg-black/90 backdrop-blur-md border-b border-gray-800">
+        <div className="p-2 px-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <Avatar className="h-7 w-7">
+                  <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-600 text-white">
+                    <Sparkles size={14} />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute -top-0.5 -right-0.5">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-white">
+                  Financial Assistant
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30 text-xs px-1.5 py-0">
+                    Online
+                  </Badge>
+                  <Separator orientation="vertical" className="h-2.5 bg-gray-700" />
+                  <span className="text-xs text-gray-400">AI-Powered</span>
+                </div>
+              </div>
+            </div>
+            <Button
+              onClick={startNewChat}
+              variant="outline"
+              size="sm"
+              className="bg-gray-900 hover:bg-gray-800 border-gray-700 text-white h-7 px-3 text-xs hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
+            >
+              <Plus size={10} className="mr-1.5" />
+              New Chat
+            </Button>
           </div>
         </div>
-        <button
-          onClick={startNewChat}
-          style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
-            color: '#ffffff',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            padding: '8px 12px',
-            borderRadius: '20px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '13px',
-            fontWeight: '500',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseOver={(e) => {
-            e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-          }}
-          onMouseOut={(e) => {
-            e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-          }}
-        >
-          <Plus size={14} />
-          New
-        </button>
       </div>
 
-      {/* Messages */}
-      <div style={{
-        flex: 1,
-        padding: '16px',
-        overflowY: 'auto',
-        paddingBottom: '120px',
-        position: 'relative',
-        zIndex: 10
-      }}>
-        {messages.length === 0 ? (
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100%',
-            textAlign: 'center'
-          }}>
-            <div>
-              <div style={{
-                width: '64px',
-                height: '64px',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(8px)',
-                borderRadius: '50%',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                margin: '0 auto 16px',
-                border: '1px solid rgba(255, 255, 255, 0.1)'
-              }}>
-                <MessageSquare size={32} color="#60a5fa" />
-              </div>
-              <h3 style={{ margin: '0 0 8px', fontSize: '20px' }}>
-                Welcome to Financial Chat
-              </h3>
-              <p style={{ margin: 0, color: '#9ca3af', maxWidth: '400px' }}>
-                Ask me about stocks, portfolio management, financial news, market analysis, 
-                or any investment-related questions.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            {messages.map((message, index) => (
-              <div
-                key={message.id || index}
-                style={{
-                  marginBottom: '16px',
-                  display: 'flex',
-                  justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
-                  alignItems: 'flex-start',
-                  gap: '8px'
-                }}
-              >
-                {/* AI Avatar - minimal */}
-                {message.role !== 'user' && (
-                  <div style={{
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '6px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    marginTop: '2px'
-                  }}>
-                    <MessageSquare size={12} color="white" strokeWidth={2} />
+      {/* Scrollable Messages Area - With Top Padding for Fixed Header */}
+      <div className="flex-1 pt-16 overflow-hidden">
+        <div className="h-full overflow-y-auto p-3">
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full py-8">
+              <Card className="bg-gray-900/80 backdrop-blur-sm border-gray-800 max-w-md mx-auto hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300">
+                <CardContent className="p-5 text-center space-y-3">
+                  <div className="relative mx-auto w-12 h-12">
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full animate-pulse opacity-20" />
+                    <div className="absolute inset-1 bg-gray-950 rounded-full flex items-center justify-center">
+                      <MessageSquare size={20} className="text-purple-400" />
+                    </div>
                   </div>
-                )}
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-bold text-white">
+                      Welcome to Financial Chat
+                    </h3>
+                    <p className="text-gray-400 text-xs leading-relaxed">
+                      Your AI-powered financial assistant is ready to help with stocks, portfolio management, 
+                      market analysis, and investment strategies.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 justify-center">
+                    <Badge variant="outline" className="border-purple-400/30 text-purple-400 bg-purple-500/10 text-xs px-2 py-0.5">Stock Analysis</Badge>
+                    <Badge variant="outline" className="border-green-400/30 text-green-400 bg-green-500/10 text-xs px-2 py-0.5">Portfolio</Badge>
+                    <Badge variant="outline" className="border-pink-400/30 text-pink-400 bg-pink-500/10 text-xs px-2 py-0.5">Market News</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="max-w-4xl mx-auto space-y-2.5 pb-24">
+              {messages.map((message, index) => (
+                <div
+                  key={message.id || index}
+                  className={`flex gap-2.5 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  {/* AI Avatar */}
+                  {message.role !== 'user' && (
+                    <div className="flex-shrink-0">
+                      <Avatar className="h-5 w-5">
+                        <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-600 text-white">
+                          <Bot size={10} />
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                  )}
 
-                <div style={{
-                  maxWidth: '70%',
-                  padding: message.role === 'user' ? '12px 16px' : '12px 16px',
-                  borderRadius: message.role === 'user' ? 
-                    '18px 18px 4px 18px' : 
-                    '18px 18px 18px 4px',
-                  backgroundColor: message.role === 'user' ? 
-                    'rgba(255, 255, 255, 0.1)' : 
-                    'rgba(255, 255, 255, 0.05)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  color: '#fff',
-                  fontSize: '14px',
-                  lineHeight: '1.5',
-                  fontWeight: '400'
-                }}>
-                  {/* Render message content with markdown support for assistant */}
-                  {message.role === 'assistant' ? (
-                    <div 
-                      className="markdown-content"
-                      style={{ 
-                        whiteSpace: 'normal',
-                        wordBreak: 'break-word'
-                      }}
-                      dangerouslySetInnerHTML={{ 
-                        __html: marked.parse(message.content || '') 
-                      }}
-                    />
-                  ) : (
-                    <div style={{ 
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word'
-                    }}>
-                      {message.content}
+                  <Card className={`max-w-[70%] transition-all duration-300 hover:shadow-lg ${
+                    message.role === 'user' 
+                      ? 'bg-gradient-to-r from-purple-600/20 to-pink-600/20 border-purple-500/30 hover:shadow-purple-500/20 hover:border-purple-400/50' 
+                      : 'bg-gray-900/80 border-gray-700 hover:shadow-gray-500/10 hover:border-gray-600'
+                  }`}>
+                    <CardContent className="p-1.5 py-1">
+                      {message.role === 'assistant' ? (
+                        <div 
+                          className="markdown-content text-sm leading-tight text-gray-100"
+                          dangerouslySetInnerHTML={{ 
+                            __html: marked.parse(message.content || '') 
+                          }}
+                        />
+                      ) : (
+                        <p className="text-sm leading-tight text-white whitespace-pre-wrap">
+                          {message.content}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* User Avatar */}
+                  {message.role === 'user' && (
+                    <div className="flex-shrink-0">
+                      <Avatar className="h-5 w-5">
+                        <AvatarFallback className="bg-gray-700 text-white">
+                          <User size={10} />
+                        </AvatarFallback>
+                      </Avatar>
                     </div>
                   )}
                 </div>
+              ))}
 
-                {/* User Avatar - minimal */}
-                {message.role === 'user' && (
-                  <div style={{
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '6px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '10px',
-                    flexShrink: 0,
-                    marginTop: '2px'
-                  }}>
-                    •
+              {/* Loading State */}
+              {isLoading && (
+                <div className="flex gap-2.5 justify-start">
+                  <div className="flex-shrink-0">
+                    <Avatar className="h-5 w-5">
+                      <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-600 text-white">
+                        <Bot size={10} />
+                      </AvatarFallback>
+                    </Avatar>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+                  
+                  <Card className="bg-gray-900/80 border-gray-700">
+                    <CardContent className="p-1.5 py-1">
+                      <div className="flex items-center space-x-2.5">
+                        <div className="flex space-x-1">
+                          <div className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" />
+                          <div className="w-1 h-1 bg-pink-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}} />
+                          <div className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}} />
+                        </div>
+                        <span className="text-xs text-gray-400">AI is thinking...</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
-        {isLoading && (
-          <div style={{
-            maxWidth: '800px',
-            margin: '16px auto 0',
-            padding: '0 16px',
-            display: 'flex',
-            justifyContent: 'flex-start',
-            alignItems: 'flex-start',
-            gap: '8px'
-          }}>
-            {/* AI Avatar for loading - minimalistic */}
-            <div style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '6px',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              marginTop: '2px'
-            }}>
-              <MessageSquare size={12} color="white" strokeWidth={2} />
+              <div ref={messagesEndRef} />
             </div>
-            
-            <div style={{
-              padding: '12px 16px',
-              borderRadius: '18px 18px 18px 4px',
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                <div style={{
-                  width: '6px',
-                  height: '6px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                  borderRadius: '50%',
-                  animation: 'bounce 1.4s ease-in-out infinite both',
-                  animationDelay: '0s'
-                }}></div>
-                <div style={{
-                  width: '6px',
-                  height: '6px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                  borderRadius: '50%',
-                  animation: 'bounce 1.4s ease-in-out infinite both',
-                  animationDelay: '0.2s'
-                }}></div>
-                <div style={{
-                  width: '6px',
-                  height: '6px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                  borderRadius: '50%',
-                  animation: 'bounce 1.4s ease-in-out infinite both',
-                  animationDelay: '0.4s'
-                }}></div>
-              </div>
-              <span style={{
-                fontSize: '14px',
-                fontWeight: '400',
-                color: 'rgba(255, 255, 255, 0.7)'
-              }}>
-                Thinking...
-              </span>
-            </div>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Dynamic Island Input */}
-      <div style={{
-        position: 'fixed',
-        bottom: '20px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 30
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: currentInput ? '24px' : '40px',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          padding: currentInput ? '8px 12px 8px 20px' : '12px 20px',
-          minWidth: currentInput ? '400px' : '200px',
-          maxWidth: '500px',
-          transition: 'all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)'
-        }}>
-          {/* Input field */}
-          <input
-            type="text"
-            value={currentInput}
-            onChange={(e) => setCurrentInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder={currentInput ? "" : "Ask me anything..."}
-            disabled={isLoading}
-            style={{
-              flex: 1,
-              backgroundColor: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: '#ffffff',
-              fontSize: '14px',
-              fontWeight: '400',
-              placeholder: 'rgba(255, 255, 255, 0.5)',
-              minWidth: '0'
-            }}
-          />
-
-          {/* Loading indicator or Send button */}
-          {isLoading ? (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              paddingRight: '4px'
-            }}>
-              <div style={{
-                width: '4px',
-                height: '4px',
-                backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                borderRadius: '50%',
-                animation: 'bounce 1.4s ease-in-out infinite both',
-                animationDelay: '0s'
-              }}></div>
-              <div style={{
-                width: '4px',
-                height: '4px',
-                backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                borderRadius: '50%',
-                animation: 'bounce 1.4s ease-in-out infinite both',
-                animationDelay: '0.2s'
-              }}></div>
-              <div style={{
-                width: '4px',
-                height: '4px',
-                backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                borderRadius: '50%',
-                animation: 'bounce 1.4s ease-in-out infinite both',
-                animationDelay: '0.4s'
-              }}></div>
-            </div>
-          ) : currentInput.trim() ? (
-            <button
-              onClick={handleSend}
-              style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s ease',
-                fontSize: '12px',
-                color: '#ffffff'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-                e.target.style.transform = 'scale(1.1)';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-                e.target.style.transform = 'scale(1)';
-              }}
-            >
-              →
-            </button>
-          ) : null}
+          )}
         </div>
       </div>
+
+      {/* Modern Floating Input */}
+      <div className="pb-20">
+        <div className="fixed bottom-3 left-1/2 transform -translate-x-1/2 w-full max-w-3xl px-4 z-50">
+          <Card className="bg-black/95 backdrop-blur-md border-gray-800 shadow-2xl rounded-full hover:shadow-purple-500/20 hover:border-purple-500/50 transition-all duration-300">
+            <CardContent className="p-1 flex items-center space-x-2">
+              <div className="flex-1 px-3">
+                <Input
+                  type="text"
+                  value={currentInput}
+                  onChange={(e) => setCurrentInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask about stocks, portfolio management, or financial insights..."
+                  disabled={isLoading}
+                  className="bg-transparent border-none text-white placeholder:text-gray-500 focus-visible:ring-0 shadow-none h-7 text-sm hover:placeholder:text-gray-400 transition-colors duration-300"
+                />
+              </div>
+
+              <div className="flex items-center space-x-2 pr-1">
+                {isLoading ? (
+                  <div className="flex space-x-1 px-2">
+                    <div className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" />
+                    <div className="w-1 h-1 bg-pink-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}} />
+                    <div className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}} />
+                  </div>
+                ) : (
+                  currentInput.trim() && (
+                    <Button
+                      onClick={handleSend}
+                      size="sm"
+                      className="h-6 w-6 rounded-full p-0 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 shadow-lg hover:shadow-xl hover:shadow-purple-500/30 transition-all duration-300"
+                    >
+                      <Send size={10} />
+                    </Button>
+                  )
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </>
+    </div>
   );
 };
 
