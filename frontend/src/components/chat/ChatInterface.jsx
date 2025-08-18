@@ -123,52 +123,46 @@ const ChatInterface = () => {
               </Card>
             </div>
           ) : (
-            <div className="max-w-4xl mx-auto space-y-2.5 pb-24">
+            <div className="max-w-4xl mx-auto space-y-6 pb-24">
               {messages.map((message, index) => (
-                <div
-                  key={message.id || index}
-                  className={`flex gap-2.5 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  {/* AI Avatar */}
-                  {message.role !== 'user' && (
-                    <div className="flex-shrink-0">
-                      <Avatar className="h-5 w-5">
-                        <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-600 text-white">
-                          <Bot size={10} />
-                        </AvatarFallback>
-                      </Avatar>
+                <div key={message.id || index}>
+                  {message.role === 'user' ? (
+                    /* User Message - Chat bubble style */
+                    <div className="flex gap-2.5 justify-end mb-4">
+                      <Card className="max-w-[70%] transition-all duration-300 hover:shadow-lg bg-gradient-to-r from-purple-600/20 to-pink-600/20 border-purple-500/30 hover:shadow-purple-500/20 hover:border-purple-400/50">
+                        <CardContent className="p-3 py-2">
+                          <p className="text-sm leading-relaxed text-white whitespace-pre-wrap">
+                            {message.content}
+                          </p>
+                        </CardContent>
+                      </Card>
+                      <div className="flex-shrink-0">
+                        <Avatar className="h-7 w-7">
+                          <AvatarFallback className="bg-gray-700 text-white">
+                            <User size={14} />
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
                     </div>
-                  )}
-
-                  <Card className={`max-w-[70%] transition-all duration-300 hover:shadow-lg ${
-                    message.role === 'user' 
-                      ? 'bg-gradient-to-r from-purple-600/20 to-pink-600/20 border-purple-500/30 hover:shadow-purple-500/20 hover:border-purple-400/50' 
-                      : 'bg-gray-950/90 border-gray-800 hover:shadow-gray-500/20 hover:border-gray-700'
-                  }`}>
-                    <CardContent className="p-1.5 py-1">
-                      {message.role === 'assistant' ? (
-                        <div 
-                          className="markdown-content text-sm leading-tight text-gray-200"
-                          dangerouslySetInnerHTML={{ 
-                            __html: marked.parse(message.content || '') 
-                          }}
-                        />
-                      ) : (
-                        <p className="text-sm leading-tight text-white whitespace-pre-wrap">
-                          {message.content}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* User Avatar */}
-                  {message.role === 'user' && (
-                    <div className="flex-shrink-0">
-                      <Avatar className="h-5 w-5">
-                        <AvatarFallback className="bg-gray-700 text-white">
-                          <User size={10} />
-                        </AvatarFallback>
-                      </Avatar>
+                  ) : (
+                    /* AI Response - Full width like ChatGPT */
+                    <div className="w-full mb-6">
+                      <div className="flex gap-3 items-start">
+                        <div className="flex-shrink-0 mt-1">
+                          <Avatar className="h-7 w-7">
+                            <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-600 text-white">
+                              <Bot size={14} />
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="markdown-content text-base leading-relaxed text-gray-200 py-2">
+                            <div dangerouslySetInnerHTML={{ 
+                              __html: marked.parse(message.content || '') 
+                            }} />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -176,27 +170,26 @@ const ChatInterface = () => {
 
               {/* Loading State */}
               {isLoading && (
-                <div className="flex gap-2.5 justify-start">
-                  <div className="flex-shrink-0">
-                    <Avatar className="h-5 w-5">
-                      <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-600 text-white">
-                        <Bot size={10} />
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  
-                  <Card className="bg-gray-950/90 border-gray-800">
-                    <CardContent className="p-1.5 py-1">
-                      <div className="flex items-center space-x-2.5">
+                <div className="w-full mb-6">
+                  <div className="flex gap-3 items-start">
+                    <div className="flex-shrink-0 mt-1">
+                      <Avatar className="h-7 w-7">
+                        <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-600 text-white">
+                          <Bot size={14} />
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-3 py-3">
                         <div className="flex space-x-1">
-                          <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" />
-                          <div className="w-1 h-1 bg-teal-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}} />
-                          <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}} />
+                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" />
+                          <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}} />
+                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}} />
                         </div>
-                        <span className="text-xs text-gray-400">AI is thinking...</span>
+                        <span className="text-sm text-gray-400">AI is thinking...</span>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </div>
               )}
 
