@@ -1,25 +1,47 @@
 from agents import function_tool
-import yfinance as yf
 import json
 import os
 from dotenv import load_dotenv
 from python_helpers import get_co_code
 import requests
-
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+from typing import List, Dict, Optional, Tuple
+from scipy import stats
+import warnings
+warnings.filterwarnings('ignore')
 
 load_dotenv()
 api_key = os.getenv("CMOTS_API_KEY")
+fmp_api_key = os.getenv("FMP_API_KEY")
+fmp_base_url = os.getenv("FMP_BASE_URL", "https://financialmodelingprep.com")
 BASE_URL = os.getenv("CMOTS_BASE_URL", "https://insbaapis.cmots.com")
 API_SUFFIX = os.getenv("CMOTS_API_SUFFIX", "C")
 
 @function_tool
 def get_ttm_ratios(company_name: str) -> dict | None:
 	"""
-	Fetches key metrics and TTM ratios for a company using the DailyRatios API.
+	FUNDAMENTAL ANALYSIS: Fetches comprehensive TTM (Trailing Twelve Months) financial ratios and key metrics.
+	
+	This tool provides essential fundamental analysis data including:
+	- Profitability ratios (ROE, ROA, profit margins, EBITDA margins)
+	- Liquidity ratios (current ratio, quick ratio, cash ratio)
+	- Efficiency ratios (asset turnover, inventory turnover, receivables turnover)
+	- Leverage ratios (debt-to-equity, interest coverage, debt ratios)
+	- Valuation ratios (P/E, P/B, P/S, EV/EBITDA)
+	- Growth metrics and financial health indicators
+	
+	Use this tool when users ask about:
+	- Company financial health, profitability, or financial performance
+	- Fundamental analysis, financial ratios, or valuation metrics
+	- Balance sheet strength, liquidity, or debt analysis
+	- Comparing financial metrics across companies
+	
 	Args:
-		company_name: The name of the company.
+		company_name: The name of the company (e.g., 'Apple', 'Microsoft', 'Tesla')
 	Returns:
-		Dictionary of TTM ratios and metrics, or None if not found.
+		Dictionary of comprehensive TTM ratios and financial metrics
 	"""
 	co_code = get_co_code(company_name, api_key)
 	if not co_code:
@@ -41,11 +63,27 @@ def get_ttm_ratios(company_name: str) -> dict | None:
 @function_tool
 def get_quarterly_results(company_name: str) -> dict | None:
 	"""
-	Fetches quarterly results for a company using the QuarterlyResults API.
+	EARNINGS ANALYSIS: Fetches detailed quarterly earnings results and financial statements.
+	
+	This tool provides comprehensive quarterly financial data including:
+	- Revenue, profit, and earnings per share trends
+	- Income statement line items by quarter
+	- Year-over-year and quarter-over-quarter growth rates
+	- Segment-wise revenue breakdown (if available)
+	- Seasonal patterns and earnings quality metrics
+	- Beat/miss analysis vs. analyst expectations
+	
+	Use this tool when users ask about:
+	- Quarterly earnings, revenue, or profit trends
+	- Company financial performance over time
+	- Earnings growth, revenue growth, or quarterly comparisons
+	- Financial statement analysis or earnings quality
+	- How the company performed in recent quarters
+	
 	Args:
-		company_name: The name of the company.
+		company_name: The name of the company (e.g., 'Apple', 'Google', 'Amazon')
 	Returns:
-		Dictionary of quarterly results, or None if not found.
+		Dictionary of detailed quarterly financial results and trends
 	"""
 	
 	co_code = get_co_code(company_name, api_key)

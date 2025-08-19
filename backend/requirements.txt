@@ -8,3 +8,23 @@ pymongo
 yfinance
 tiktoken
 pinecone-client
+pandas
+numpy
+scipy
+statsmodels
+
+# Professional Quantitative Finance Libraries
+QuantLib-Python
+PyPortfolioOpt
+arch
+riskfolio-lib
+
+# Machine Learning Libraries
+scikit-learn
+xgboost
+lightgbm
+tsfresh
+
+# Additional Dependencies
+matplotlib
+xlsxwriter

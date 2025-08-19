@@ -28,6 +28,26 @@ from tools.finance_tool import (
     get_valuation_ratios,
 )
 from tools.portfolio_tool import get_user_portfolio
+from tools.quant_analysis_tool import (
+    get_historical_price_data,
+    calculate_volatility_metrics,
+    calculate_correlation_analysis,
+    calculate_advanced_statistics,
+    calculate_monte_carlo_simulation,
+    calculate_options_metrics,
+)
+from tools.advanced_quant_tools import (
+    calculate_portfolio_optimization,
+    calculate_garch_volatility_models,
+    calculate_quantlib_options_pricing,
+    calculate_ml_price_prediction,
+    calculate_riskfolio_portfolio_risk,
+    calculate_tsfresh_features,
+)
+from tools.enhanced_technical_analysis import (
+    calculate_comprehensive_technical_analysis,
+    analyze_candlestick_patterns,
+)
 
 app = FastAPI(title="Agentic Chatbot")
 
@@ -75,6 +95,23 @@ async def chat(req: ChatRequest):
             get_cashflow_ratios,
             get_growth_ratios,
             get_user_portfolio,
+            # Basic Quantitative Analysis Tools
+            get_historical_price_data,
+            calculate_volatility_metrics,
+            calculate_correlation_analysis,
+            calculate_advanced_statistics,
+            calculate_monte_carlo_simulation,
+            calculate_options_metrics,
+            # Professional Quantitative Finance Tools
+            calculate_portfolio_optimization,
+            calculate_garch_volatility_models,
+            calculate_quantlib_options_pricing,
+            calculate_ml_price_prediction,
+            calculate_riskfolio_portfolio_risk,
+            calculate_tsfresh_features,
+            # Enhanced Technical Analysis with Charts (replaces basic technical indicators)
+            calculate_comprehensive_technical_analysis,
+            analyze_candlestick_patterns,
             WebSearchTool()
         ]
         app_logger.info(f"Tools loaded: {len(tools)} tools")
