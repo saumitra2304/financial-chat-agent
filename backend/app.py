@@ -37,12 +37,24 @@ from tools.quant_analysis_tool import (
     calculate_options_metrics,
 )
 from tools.advanced_quant_tools import (
+    get_historical_price_data as adv_get_historical_price_data,
+    calculate_volatility_metrics as adv_calculate_volatility_metrics,
+    calculate_correlation_analysis as adv_calculate_correlation_analysis,
+    calculate_advanced_statistics as adv_calculate_advanced_statistics,
+    calculate_monte_carlo_simulation as adv_calculate_monte_carlo_simulation,
     calculate_portfolio_optimization,
     calculate_garch_volatility_models,
-    calculate_quantlib_options_pricing,
-    calculate_ml_price_prediction,
-    calculate_riskfolio_portfolio_risk,
-    calculate_tsfresh_features,
+    calculate_pca_decomposition,
+    calculate_rolling_beta,
+    calculate_autocorrelation_analysis,
+    calculate_cointegration_test,
+    calculate_kalman_spread,
+    calculate_rolling_volatility,
+    calculate_drawdown_series,
+    calculate_var_cvar_analysis,
+    calculate_markov_regime_detection,
+    calculate_factor_exposure_ols,
+    calculate_factor_exposure_pca,
 )
 from tools.enhanced_technical_analysis import (
     calculate_comprehensive_technical_analysis,
@@ -102,13 +114,14 @@ async def chat(req: ChatRequest):
             calculate_advanced_statistics,
             calculate_monte_carlo_simulation,
             calculate_options_metrics,
-            # Professional Quantitative Finance Tools
+            # Professional Quantitative Finance Tools (with column name fixes)
+            adv_get_historical_price_data,
+            adv_calculate_volatility_metrics,
+            adv_calculate_correlation_analysis,
+            adv_calculate_advanced_statistics,
+            adv_calculate_monte_carlo_simulation,
             calculate_portfolio_optimization,
             calculate_garch_volatility_models,
-            calculate_quantlib_options_pricing,
-            calculate_ml_price_prediction,
-            calculate_riskfolio_portfolio_risk,
-            calculate_tsfresh_features,
             # Enhanced Technical Analysis with Charts (replaces basic technical indicators)
             calculate_comprehensive_technical_analysis,
             analyze_candlestick_patterns,
