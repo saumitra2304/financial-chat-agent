@@ -10,9 +10,11 @@ from pydantic import BaseModel
 from agents import WebSearchTool
 
 from agents_core import run_orchestrator_with_memory
+from response_formatter import ResponseFormatter
 from logger_config import app_logger
 from memory.mongo_memory import get_mongo_memory
 from tools.finance_tool import (
+    confirm_stock_symbol,
     get_balance_sheet,
     get_cashflow,
     get_cashflow_ratios,
@@ -29,6 +31,7 @@ from tools.finance_tool import (
 )
 from tools.portfolio_tool import get_user_portfolio
 from tools.quant_analysis_tool import (
+    verify_company_symbol,
     get_historical_price_data,
     calculate_volatility_metrics,
     calculate_correlation_analysis,
@@ -37,6 +40,7 @@ from tools.quant_analysis_tool import (
     calculate_options_metrics,
 )
 from tools.advanced_quant_tools import (
+    verify_stock_for_advanced_analysis,
     get_historical_price_data as adv_get_historical_price_data,
     calculate_volatility_metrics as adv_calculate_volatility_metrics,
     calculate_correlation_analysis as adv_calculate_correlation_analysis,
@@ -60,6 +64,12 @@ from tools.enhanced_technical_analysis import (
     calculate_comprehensive_technical_analysis,
     analyze_candlestick_patterns,
 )
+from tools.stock_verification_tool import (
+    search_and_confirm_stock,
+    proceed_with_confirmed_symbol,
+)
+from tool_orchestrator import tool_orchestrator
+from stock_updater_service import start_stock_updater_service, stop_stock_updater_service
 
 app = FastAPI(title="Agentic Chatbot")
 
@@ -67,6 +77,31 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
 )
+
+# Start stock updater service on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    app_logger.info("Starting up Financial Chat Agent...")
+    
+    # Start stock data updater service
+    try:
+        start_stock_updater_service()
+        app_logger.info("Stock updater service started successfully")
+    except Exception as e:
+        app_logger.error(f"Failed to start stock updater service: {e}")
+        # Don't fail startup if stock updater fails
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup services on shutdown"""
+    app_logger.info("Shutting down Financial Chat Agent...")
+    
+    try:
+        stop_stock_updater_service()
+        app_logger.info("Stock updater service stopped")
+    except Exception as e:
+        app_logger.error(f"Error stopping stock updater service: {e}")
 
 class ChatRequest(BaseModel):
     user_id: str
@@ -91,8 +126,21 @@ async def chat(req: ChatRequest):
     try:
         app_logger.info(f"Processing message from {user_id}/{chat_id}: {user_msg[:100]}...")
 
+        # Enhance user query with tool orchestration guidance
+        enhanced_user_msg = tool_orchestrator.get_analysis_prompt_enhancement(user_msg)
+        
+        if enhanced_user_msg != user_msg:
+            app_logger.info(f"Enhanced query with tool orchestration guidance")
+
         # Build tools list
         tools = [
+            # Stock Verification Tools (USE FIRST for company analysis)
+            search_and_confirm_stock,
+            proceed_with_confirmed_symbol,
+            confirm_stock_symbol,
+            verify_company_symbol,
+            verify_stock_for_advanced_analysis,
+            # Fundamental Analysis Tools
             get_ttm_ratios,
             get_quarterly_results,
             get_profit_loss,
@@ -129,23 +177,27 @@ async def chat(req: ChatRequest):
         ]
         app_logger.info(f"Tools loaded: {len(tools)} tools")
 
-        # Run orchestrator with MongoDB-based memory
+        # Run orchestrator with MongoDB-based memory using enhanced message
         result = await run_orchestrator_with_memory(
-            user_msg=user_msg,
+            user_msg=enhanced_user_msg,
             tools=tools,
             memory=mongo_memory,
             user_id=user_id,
             chat_id=chat_id
         )
-        answer = str(result.final_output)
-        app_logger.info(f"Generated response: {answer[:100]}...")
+        
+        # Format the response with metadata
+        enhanced_response = ResponseFormatter.format_enhanced_response(result)
+        
+        app_logger.info("Generated response successfully")
+        
+        return enhanced_response
         
     except Exception as e:
         app_logger.error(f"Error in chat endpoint: {e}")
         app_logger.error(f"Traceback: {traceback.format_exc()}")
         answer = f"Sorry, I encountered an error processing your request: {str(e)}"
-
-    return {"answer": answer}
+        return {"answer": answer}
 
 # Health check
 @app.get("/health")

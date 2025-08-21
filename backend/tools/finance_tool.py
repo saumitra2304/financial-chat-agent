@@ -2,7 +2,7 @@ from agents import function_tool
 import json
 import os
 from dotenv import load_dotenv
-from python_helpers import get_co_code
+from python_helpers import get_co_code, search_nse_symbol_by_name
 import requests
 import pandas as pd
 import numpy as np
@@ -18,6 +18,103 @@ fmp_api_key = os.getenv("FMP_API_KEY")
 fmp_base_url = os.getenv("FMP_BASE_URL", "https://financialmodelingprep.com")
 BASE_URL = os.getenv("CMOTS_BASE_URL", "https://insbaapis.cmots.com")
 API_SUFFIX = os.getenv("CMOTS_API_SUFFIX", "C")
+
+@function_tool
+def confirm_stock_symbol(company_name: str) -> dict:
+	"""
+	STOCK SYMBOL CONFIRMATION: Searches for and displays the stock symbol found for a company name, asking user to confirm.
+	
+	This tool helps ensure accuracy by:
+	- Searching for the company in our NSE database
+	- Displaying the found company name and symbol
+	- Asking the user to confirm this is the correct company
+	- Preventing analysis of wrong companies due to name ambiguity
+	
+	Use this tool FIRST when users ask about any specific company analysis to ensure you're analyzing the correct stock.
+	
+	Args:
+		company_name: The company name mentioned by the user (e.g., 'reliance industries', 'tata steel', 'infosys')
+	Returns:
+		Dictionary with found symbol, company name, and confirmation status
+	"""
+	try:
+		# Search for the NSE symbol
+		nse_symbol = search_nse_symbol_by_name(company_name)
+		
+		if nse_symbol:
+			# Get the full company details from the database
+			import pymongo
+			mongo_uri = os.getenv('MONGO_URI', 'mongodb://localhost:27017')
+			database_name = os.getenv('DB_NAME', 'chatbotdb')
+			
+			client = pymongo.MongoClient(mongo_uri)
+			db = client[database_name]
+			collection = db['stock_companies']
+			
+			company_doc = collection.find_one({'symbol': nse_symbol})
+			
+			if company_doc:
+				result = {
+					'search_term': company_name,
+					'found_symbol': nse_symbol,
+					'found_company_name': company_doc.get('name', 'N/A'),
+					'current_price': company_doc.get('price', 'N/A'),
+					'confirmation_required': True,
+					'message': f"Found: {company_doc.get('name', 'N/A')} (Symbol: {nse_symbol}). Please confirm this is the correct company before proceeding with analysis."
+				}
+			else:
+				result = {
+					'search_term': company_name,
+					'found_symbol': nse_symbol,
+					'found_company_name': 'Unknown',
+					'confirmation_required': True,
+					'message': f"Found symbol {nse_symbol} for '{company_name}'. Please confirm this is correct."
+				}
+		else:
+			result = {
+				'search_term': company_name,
+				'found_symbol': None,
+				'found_company_name': None,
+				'confirmation_required': False,
+				'message': f"No NSE stock found for '{company_name}'. Please check the company name or provide the exact stock symbol."
+			}
+		
+		return result
+		
+	except Exception as e:
+		return {
+			'error': str(e),
+			'message': f"Error searching for company '{company_name}': {str(e)}"
+		}
+
+def get_company_identifiers(company_name: str) -> dict:
+	"""
+	Internal helper function to get company identifiers from multiple sources.
+	Returns both CMOTS co_code and NSE symbol if available.
+	"""
+	result = {
+		'co_code': None,
+		'nse_symbol': None,
+		'company_name': company_name
+	}
+	
+	# Try to get CMOTS co_code
+	try:
+		co_code = get_co_code(company_name, api_key)
+		if co_code:
+			result['co_code'] = co_code
+	except Exception as e:
+		pass
+	
+	# Try to get NSE symbol from our database
+	try:
+		nse_symbol = search_nse_symbol_by_name(company_name)
+		if nse_symbol:
+			result['nse_symbol'] = nse_symbol
+	except Exception as e:
+		pass
+	
+	return result
 
 @function_tool
 def get_ttm_ratios(company_name: str) -> dict | None:
@@ -39,14 +136,18 @@ def get_ttm_ratios(company_name: str) -> dict | None:
 	- Comparing financial metrics across companies
 	
 	Args:
-		company_name: The name of the company (e.g., 'Apple', 'Microsoft', 'Tesla')
+		company_name: The name of the company (e.g., 'Apple', 'Microsoft', 'Tesla', 'Reliance Industries')
 	Returns:
 		Dictionary of comprehensive TTM ratios and financial metrics
 	"""
-	co_code = get_co_code(company_name, api_key)
+	# Get company identifiers (both CMOTS co_code and NSE symbol)
+	identifiers = get_company_identifiers(company_name)
+	co_code = identifiers['co_code']
+	nse_symbol = identifiers['nse_symbol']
+	
 	if not co_code:
-		print(f"Error: Could not find company code for '{company_name}' in TTM ratios fetch.")
 		return None
+		
 	url = f"{BASE_URL}/api/DailyRatios/{int(co_code)}/{API_SUFFIX}"
 	headers = {"Authorization": f"Bearer {api_key}"}
 	try:
@@ -57,7 +158,6 @@ def get_ttm_ratios(company_name: str) -> dict | None:
 			return result["data"]
 		return None
 	except Exception as e:
-		print(f"Error fetching TTM ratios: {e}")
 		return None
 
 @function_tool
@@ -88,7 +188,6 @@ def get_quarterly_results(company_name: str) -> dict | None:
 	
 	co_code = get_co_code(company_name, api_key)
 	if not co_code:
-		print(f"Error: Could not find company code for '{company_name}' in quarterly results fetch.")
 		return None
 	url = f"{BASE_URL}/api/QuarterlyResults/{int(co_code)}/{API_SUFFIX}"
 	headers = {"Authorization": f"Bearer {api_key}"}
@@ -100,7 +199,6 @@ def get_quarterly_results(company_name: str) -> dict | None:
 			return result["data"]
 		return None
 	except Exception as e:
-		print(f"Error fetching quarterly results: {e}")
 		return None
 	
 @function_tool
@@ -115,7 +213,6 @@ def get_profit_loss(company_name: str) -> dict | None:
 	
 	co_code = get_co_code(company_name, api_key)
 	if not co_code:
-		print(f"Error: Could not find company code for '{company_name}' in profit and loss fetch.")
 		return None
 	url = f"{BASE_URL}/api/ProftandLoss/{int(co_code)}/{API_SUFFIX}"
 	headers = {"Authorization": f"Bearer {api_key}"}
@@ -127,7 +224,6 @@ def get_profit_loss(company_name: str) -> dict | None:
 			return result["data"]
 		return None
 	except Exception as e:
-		print(f"Error fetching profit and loss data: {e}")
 		return None
 
 @function_tool
@@ -142,7 +238,6 @@ def get_balance_sheet(company_name: str) -> dict | None:
 	
 	co_code = get_co_code(company_name, api_key)
 	if not co_code:
-		print(f"Error: Could not find company code for '{company_name}' in balance sheet fetch.")
 		return None
 	url = f"{BASE_URL}/api/Balancesheet/{int(co_code)}/{API_SUFFIX}"
 	headers = {"Authorization": f"Bearer {api_key}"}
@@ -154,7 +249,6 @@ def get_balance_sheet(company_name: str) -> dict | None:
 			return result["data"]
 		return None
 	except Exception as e:
-		print(f"Error fetching balance sheet data: {e}")
 		return None
 
 @function_tool
@@ -169,7 +263,6 @@ def get_cashflow(company_name: str) -> dict | None:
 	
 	co_code = get_co_code(company_name, api_key)
 	if not co_code:
-		print(f"Error: Could not find company code for '{company_name}' in cash flow fetch.")
 		return None
 	url = f"{BASE_URL}/api/CashFlow/{int(co_code)}/{API_SUFFIX}"
 	headers = {"Authorization": f"Bearer {api_key}"}
@@ -181,7 +274,6 @@ def get_cashflow(company_name: str) -> dict | None:
 			return result["data"]
 		return None
 	except Exception as e:
-		print(f"Error fetching cash flow data: {e}")
 		return None
 
 @function_tool
@@ -196,7 +288,6 @@ def get_shareholding(company_name: str) -> dict | None:
 	
 	co_code = get_co_code(company_name, api_key)
 	if not co_code:
-		print(f"Error: Could not find company code for '{company_name}' in shareholding fetch.")
 		return None
 	url = f"{BASE_URL}/api/ShareholdingMorethanonePerDetails/{int(co_code)}"
 	headers = {"Authorization": f"Bearer {api_key}"}
@@ -208,7 +299,6 @@ def get_shareholding(company_name: str) -> dict | None:
 			return result["data"]
 		return None
 	except Exception as e:
-		print(f"Error fetching shareholding data: {e}")
 		return None
 
 @function_tool
@@ -223,7 +313,6 @@ def get_margin_ratios(company_name: str) -> dict | None:
 	
 	co_code = get_co_code(company_name, api_key)
 	if not co_code:
-		print(f"Error: Could not find company code for '{company_name}' in margin ratios fetch.")
 		return None
 	url = f"{BASE_URL}/api/MarginRatios/{int(co_code)}/{API_SUFFIX}"
 	headers = {"Authorization": f"Bearer {api_key}"}
@@ -235,7 +324,6 @@ def get_margin_ratios(company_name: str) -> dict | None:
 			return result["data"]
 		return None
 	except Exception as e:
-		print(f"Error fetching margin ratios: {e}")
 		return None
 
 @function_tool
@@ -250,7 +338,6 @@ def get_performance_ratios(company_name: str) -> dict | None:
 	
 	co_code = get_co_code(company_name, api_key)
 	if not co_code:
-		print(f"Error: Could not find company code for '{company_name}' in performance ratios fetch.")
 		return None
 	url = f"{BASE_URL}/api/PerformanceRatios/{int(co_code)}/{API_SUFFIX}"
 	headers = {"Authorization": f"Bearer {api_key}"}
@@ -262,7 +349,6 @@ def get_performance_ratios(company_name: str) -> dict | None:
 			return result["data"]
 		return None
 	except Exception as e:
-		print(f"Error fetching solvency ratios: {e}")
 		return None
 
 @function_tool
@@ -277,7 +363,6 @@ def get_efficiency_ratios(company_name: str) -> dict | None:
 	
 	co_code = get_co_code(company_name, api_key)
 	if not co_code:
-		print(f"Error: Could not find company code for '{company_name}' in efficiency ratios fetch.")
 		return None
 	url = f"{BASE_URL}/api/EfficiencyRatios/{int(co_code)}/{API_SUFFIX}"
 	headers = {"Authorization": f"Bearer {api_key}"}
@@ -289,7 +374,6 @@ def get_efficiency_ratios(company_name: str) -> dict | None:
 			return result["data"]
 		return None
 	except Exception as e:
-		print(f"Error fetching efficiency ratios: {e}")
 		return None
 
 @function_tool
@@ -304,7 +388,6 @@ def get_financial_stability_ratios(company_name: str) -> dict | None:
 	
 	co_code = get_co_code(company_name, api_key)
 	if not co_code:
-		print(f"Error: Could not find company code for '{company_name}' in financial stability ratios fetch.")
 		return None
 	url = f"{BASE_URL}/api/FinancialStabilityRatios/{int(co_code)}/{API_SUFFIX}"
 	headers = {"Authorization": f"Bearer {api_key}"}
@@ -316,7 +399,6 @@ def get_financial_stability_ratios(company_name: str) -> dict | None:
 			return result["data"]
 		return None
 	except Exception as e:
-		print(f"Error fetching financial stability ratios: {e}")
 		return None
 	
 @function_tool

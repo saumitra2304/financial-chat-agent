@@ -4,14 +4,79 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple
 from scipy import stats
-import requests
 import os
 from dotenv import load_dotenv
-from python_helpers import get_fmp_price_data, search_symbol
+from python_helpers import get_fmp_price_data, search_symbol, search_nse_symbol_by_name
 import warnings
 warnings.filterwarnings('ignore')
 
 load_dotenv()
+
+@function_tool
+def verify_company_symbol(company_name: str) -> dict:
+	"""
+	COMPANY VERIFICATION: Verifies and displays the stock symbol found for a company name before analysis.
+	
+	This tool ensures accuracy in quantitative analysis by:
+	- Finding the correct NSE stock symbol for the company name
+	- Displaying company details including current price
+	- Requiring user confirmation before proceeding with technical analysis
+	- Preventing analysis of wrong stocks due to ambiguous company names
+	
+	ALWAYS use this tool FIRST when users ask for analysis of a specific company.
+	
+	Args:
+		company_name: The company name from user query (e.g., 'reliance industries', 'hdfc bank', 'tcs')
+	Returns:
+		Dictionary with verification details and confirmation requirement
+	"""
+	try:
+		# Search for the NSE symbol using our database
+		nse_symbol = search_nse_symbol_by_name(company_name)
+		
+		if nse_symbol:
+			# Get additional company details from our database
+			import pymongo
+			mongo_uri = os.getenv('MONGO_URI', 'mongodb://localhost:27017')
+			database_name = os.getenv('DB_NAME', 'chatbotdb')
+			
+			client = pymongo.MongoClient(mongo_uri)
+			db = client[database_name]
+			collection = db['stock_companies']
+			
+			company_doc = collection.find_one({'symbol': nse_symbol})
+			
+			result = {
+				'status': 'found',
+				'search_term': company_name,
+				'verified_symbol': nse_symbol,
+				'company_name': company_doc.get('name', 'N/A') if company_doc else 'N/A',
+				'current_price': company_doc.get('price', 'N/A') if company_doc else 'N/A',
+				'market_cap': company_doc.get('marketCap', 'N/A') if company_doc else 'N/A',
+				'exchange': 'NSE',
+				'confirmation_message': f"✓ Found: {company_doc.get('name', 'N/A')} (Symbol: {nse_symbol}) - Current Price: ₹{company_doc.get('price', 'N/A')}. Please confirm this is the correct company for analysis.",
+				'ready_for_analysis': True
+			}
+		else:
+			result = {
+				'status': 'not_found',
+				'search_term': company_name,
+				'verified_symbol': None,
+				'confirmation_message': f"❌ No NSE stock found for '{company_name}'. Please provide the exact company name or stock symbol (e.g., 'RELIANCE.NS').",
+				'ready_for_analysis': False,
+				'suggestion': "Try searching with more specific company names like 'Reliance Industries', 'HDFC Bank', 'Tata Consultancy Services'"
+			}
+		
+		return result
+		
+	except Exception as e:
+		return {
+			'status': 'error',
+			'search_term': company_name,
+			'error': str(e),
+			'confirmation_message': f"Error verifying company '{company_name}': {str(e)}",
+			'ready_for_analysis': False
+		}
 
 @function_tool
 def get_historical_price_data(symbol: str, timeframe: str = "5min", days_back: int = 30) -> dict | None:
@@ -33,13 +98,19 @@ def get_historical_price_data(symbol: str, timeframe: str = "5min", days_back: i
 	- Volume analysis or trading activity patterns
 	
 	Args:
-		symbol: Stock ticker symbol (e.g., 'AAPL', 'TSLA', 'MSFT')
+		symbol: Stock ticker symbol or company name (e.g., 'AAPL', 'TSLA', 'MSFT', 'Reliance Industries')
 		timeframe: Data interval - '1min', '5min', '15min', '30min', '1hour', '4hour', '1day'
 		days_back: Number of days of historical data (default: 30, max: 365)
 	
 	Returns:
 		Dictionary containing historical OHLCV data with metadata and quality indicators
 	"""
+	# If symbol looks like a company name, try to find the NSE symbol first
+	if len(symbol) > 5 and not '.' in symbol and symbol.isalpha():
+		nse_symbol = search_nse_symbol_by_name(symbol)
+		if nse_symbol:
+			symbol = nse_symbol
+	
 	result = get_fmp_price_data(symbol, timeframe, days_back, return_format="dict")
 	if result and "data" in result:
 		# Limit display data but preserve metadata
@@ -129,10 +200,17 @@ def calculate_volatility_metrics(symbol: str, timeframe: str = "5min", days_back
 			"volume_24h": df['Volume'].iloc[-1]
 		}
 		
+		# Analysis parameters used
+		metrics["analysis_parameters"] = {
+			"timeframe": timeframe,
+			"days_analyzed": len(df),
+			"analysis_period": f"{df['date'].iloc[0].strftime('%Y-%m-%d')} to {df['date'].iloc[-1].strftime('%Y-%m-%d')}",
+			"annualization_factor": annual_factor
+		}
+		
 		return metrics
 		
 	except Exception as e:
-		print(f"Error calculating volatility metrics: {e}")
 		return {"error": str(e)}
 
 @function_tool
@@ -182,7 +260,7 @@ def calculate_correlation_analysis(symbols: List[str], timeframe: str = "1d", da
 			df = pd.DataFrame(data)
 			df['date'] = pd.to_datetime(df['date'])
 			df = df.set_index('date').sort_index()
-			combined_df[symbol] = df['Close']  # Use proper column name
+			combined_df[symbol] = df['close']  # Use lowercase 'close' from FMP data
 		
 		# Calculate returns
 		returns_df = combined_df.pct_change().dropna()
@@ -224,10 +302,17 @@ def calculate_correlation_analysis(symbols: List[str], timeframe: str = "1d", da
 		results["diversification_analysis"]["average_correlation"] = round(avg_correlation, 4)
 		results["diversification_analysis"]["diversification_benefit"] = "High" if avg_correlation < 0.7 else "Medium" if avg_correlation < 0.85 else "Low"
 		
+		# Analysis parameters used
+		results["analysis_parameters"] = {
+			"symbols_count": len(symbols),
+			"data_points": len(returns_df),
+			"analysis_period": f"{returns_df.index[0].strftime('%Y-%m-%d')} to {returns_df.index[-1].strftime('%Y-%m-%d')}",
+			"timeframe": timeframe
+		}
+		
 		return results
 		
 	except Exception as e:
-		print(f"Error in correlation analysis: {e}")
 		return {"error": str(e)}
 
 @function_tool
@@ -326,10 +411,17 @@ def calculate_advanced_statistics(symbol: str, timeframe: str = "1d", days_back:
 			"calmar_ratio": float(returns.mean() * 252 / abs(returns.min())) if returns.min() < 0 else 0,
 		}
 		
+		# Analysis parameters used
+		stats_results["analysis_parameters"] = {
+			"timeframe": timeframe,
+			"days_analyzed": len(df),
+			"analysis_period": f"{df['date'].iloc[0].strftime('%Y-%m-%d')} to {df['date'].iloc[-1].strftime('%Y-%m-%d')}",
+			"statistical_tests_performed": ["jarque_bera", "shapiro", "autocorrelation"]
+		}
+		
 		return stats_results
 		
 	except Exception as e:
-		print(f"Error in advanced statistics: {e}")
 		return {"error": str(e)}
 
 @function_tool
@@ -438,10 +530,17 @@ def calculate_monte_carlo_simulation(symbol: str, forecast_days: int = 10, simul
 			}
 		}
 		
+		# Analysis parameters used
+		results["analysis_parameters"] = {
+			"historical_data_period": "252 days (1 year)",
+			"simulation_method": "Geometric Brownian Motion",
+			"time_step": "Daily",
+			"random_seed": "42 (for reproducibility)"
+		}
+		
 		return results
 		
 	except Exception as e:
-		print(f"Error in Monte Carlo simulation: {e}")
 		return {"error": str(e)}
 
 @function_tool
@@ -558,5 +657,4 @@ def calculate_options_metrics(symbol: str, strike_price: float, option_type: str
 		return results
 		
 	except Exception as e:
-		print(f"Error in options analysis: {e}")
 		return {"error": str(e)}

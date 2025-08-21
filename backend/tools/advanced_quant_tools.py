@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Union, Any
 import warnings
 from dotenv import load_dotenv
 from agents import function_tool
-from python_helpers import get_fmp_price_data, search_symbol
+from python_helpers import get_fmp_price_data, search_symbol, search_nse_symbol_by_name
 
 # Professional Finance Libraries
 import QuantLib as ql
@@ -19,11 +19,112 @@ from pypfopt import EfficientFrontier, risk_models, expected_returns
 from pypfopt import CLA, HRPOpt
 from arch import arch_model
 
+@function_tool
+def verify_stock_for_advanced_analysis(company_name: str) -> dict:
+	"""
+	ADVANCED STOCK VERIFICATION: Confirms stock symbol and company details before sophisticated quantitative analysis.
+	
+	This verification tool provides:
+	- Precise NSE stock symbol identification
+	- Company fundamental details (market cap, current price)
+	- Data availability confirmation for advanced analysis
+	- User confirmation prompt to ensure correct stock selection
+	
+	Essential to use FIRST before any advanced quantitative analysis to avoid analyzing wrong companies.
+	
+	Args:
+		company_name: Full company name as mentioned by user (e.g., 'reliance industries limited', 'infosys technologies')
+	Returns:
+		Detailed verification result with confirmation requirements
+	"""
+	try:
+		# Search for NSE symbol
+		nse_symbol = search_nse_symbol_by_name(company_name)
+		
+		if nse_symbol:
+			# Get comprehensive company data
+			import pymongo
+			mongo_uri = os.getenv('MONGO_URI', 'mongodb://localhost:27017')
+			database_name = os.getenv('DB_NAME', 'chatbotdb')
+			
+			client = pymongo.MongoClient(mongo_uri)
+			db = client[database_name]
+			collection = db['stock_companies']
+			
+			company_doc = collection.find_one({'symbol': nse_symbol})
+			
+			if company_doc:
+				# Additional data availability check
+				price = company_doc.get('price', 0)
+				market_cap = company_doc.get('marketCap', 0)
+				volume = company_doc.get('volume', 0)
+				
+				data_quality = "Excellent" if all([price > 0, market_cap > 0, volume > 0]) else "Limited"
+				
+				result = {
+					'verification_status': 'verified',
+					'search_query': company_name,
+					'confirmed_symbol': nse_symbol,
+					'company_full_name': company_doc.get('name', 'N/A'),
+					'current_price': f"₹{price:,.2f}" if price else 'N/A',
+					'market_cap': f"₹{market_cap:,.0f}" if market_cap else 'N/A',
+					'avg_volume': f"{company_doc.get('avgVolume', 0):,.0f}",
+					'data_quality': data_quality,
+					'analysis_ready': True,
+					'confirmation_prompt': f"📊 VERIFICATION: Found '{company_doc.get('name', 'N/A')}' (Symbol: {nse_symbol}) trading at ₹{price:,.2f}. This company will be used for advanced quantitative analysis. Please confirm this is correct.",
+					'next_steps': "Confirmation received. Ready to proceed with sophisticated financial analysis including portfolio optimization, risk modeling, and derivatives pricing."
+				}
+			else:
+				result = {
+					'verification_status': 'symbol_found_no_data',
+					'search_query': company_name,
+					'confirmed_symbol': nse_symbol,
+					'confirmation_prompt': f"⚠️ Found symbol {nse_symbol} but limited company data available. Analysis may be restricted.",
+					'analysis_ready': False
+				}
+		else:
+			result = {
+				'verification_status': 'not_found',
+				'search_query': company_name,
+				'confirmed_symbol': None,
+				'confirmation_prompt': f"❌ Cannot find NSE stock for '{company_name}'. Please provide exact company name or symbol (e.g., 'RELIANCE.NS', 'TCS.NS').",
+				'analysis_ready': False,
+				'suggestions': [
+					"Use full company names: 'Reliance Industries Limited', 'Tata Consultancy Services'",
+					"Provide NSE symbols directly: 'RELIANCE.NS', 'TCS.NS', 'INFY.NS'",
+					"Check spelling and company name accuracy"
+				]
+			}
+		
+		return result
+		
+	except Exception as e:
+		return {
+			'verification_status': 'error',
+			'search_query': company_name,
+			'error_details': str(e),
+			'confirmation_prompt': f"❌ Error during verification of '{company_name}': {str(e)}",
+			'analysis_ready': False
+		}
+
 # Scientific Computing
 from scipy import stats
 
 warnings.filterwarnings('ignore')
 load_dotenv()
+
+def resolve_symbol_or_name(input_str: str) -> str:
+    """
+    Internal helper to resolve company name to stock symbol using NSE database first.
+    """
+    # If input looks like a company name (long, alphabetic), try NSE search
+    if len(input_str) > 5 and not '.' in input_str and input_str.replace(' ', '').isalpha():
+        nse_symbol = search_nse_symbol_by_name(input_str)
+        if nse_symbol:
+            return nse_symbol
+    
+    # Otherwise return as-is (likely already a symbol)
+    return input_str
 
 # -----------------------------------------------------------------------------
 # Internal helpers
@@ -58,7 +159,10 @@ def _align_and_clip_returns(df: pd.DataFrame, lookback_days: Optional[int] = Non
 @function_tool
 def get_historical_price_data(symbol: str, timeframe: str = "5min",
                               days_back: int = 30) -> dict | None:
-    result = get_fmp_price_data(symbol, timeframe, days_back, return_format="dict")
+    # Resolve company name to symbol if needed
+    resolved_symbol = resolve_symbol_or_name(symbol)
+    
+    result = get_fmp_price_data(resolved_symbol, timeframe, days_back, return_format="dict")
     if result and "data" in result:
         result["data"] = result["data"][:50]  # truncate for context safety
         return result
@@ -68,7 +172,10 @@ def get_historical_price_data(symbol: str, timeframe: str = "5min",
 @function_tool
 def calculate_volatility_metrics(symbol: str, timeframe: str = "1d", days_back: int = 252,
                                  winsorise: bool = False) -> dict | None:
-    df = get_fmp_price_data(symbol, timeframe, days_back, return_format="dataframe")
+    # Resolve company name to symbol if needed
+    resolved_symbol = resolve_symbol_or_name(symbol)
+    
+    df = get_fmp_price_data(resolved_symbol, timeframe, days_back, return_format="dataframe")
     if df is None or df.empty:
         return {"error": f"Could not fetch price data for {symbol}"}
 
@@ -81,7 +188,7 @@ def calculate_volatility_metrics(symbol: str, timeframe: str = "1d", days_back: 
                      "1day": 252}.get(timeframe, 252)
 
     return {
-        "symbol": symbol,
+        "symbol": resolved_symbol,
         "volatility_metrics": {
             "daily_volatility": float(returns.std() * 100),
             "annual_volatility": float(returns.std() * np.sqrt(annual_factor) * 100),
@@ -235,12 +342,25 @@ def calculate_portfolio_optimization(symbols: List[str], optimization_method: st
         perf = (port_ret.mean() * 252, port_ret.std() * np.sqrt(252),
                 (port_ret.mean() * 252) / (port_ret.std() * np.sqrt(252)))
 
+    performance_metrics = {
+        "expected_return": perf[0],
+        "volatility": perf[1], 
+        "sharpe_ratio": perf[2]
+    }
+    
     return {
         "symbols": symbols,
         "weights": clean_w,
         "expected_annual_return": f"{perf[0]:.2%}",
         "annual_volatility": f"{perf[1]:.2%}",
-        "sharpe_ratio": round(perf[2], 4)
+        "sharpe_ratio": round(perf[2], 4),
+        "analysis_parameters": {
+            "optimization_method": optimization_method,
+            "risk_model": risk_model,
+            "days_analyzed": len(price_df),
+            "risk_free_rate": risk_free_rate,
+            "analysis_period": f"{price_df.index[0].strftime('%Y-%m-%d')} to {price_df.index[-1].strftime('%Y-%m-%d')}"
+        }
     }
 
 

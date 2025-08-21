@@ -161,6 +161,32 @@ const ChatInterface = () => {
                               __html: marked.parse(message.content || '') 
                             }} />
                           </div>
+                          
+                          {/* Display Analysis Parameters if available */}
+                          {message.analysis_parameters && Object.keys(message.analysis_parameters).length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-gray-700">
+                              <h4 className="text-sm font-semibold text-gray-300 mb-2">Analysis Parameters Used:</h4>
+                              <div className="space-y-2">
+                                {Object.entries(message.analysis_parameters).map(([toolName, params], idx) => (
+                                  <div key={idx} className="bg-gray-800/50 rounded-lg p-3">
+                                    <div className="text-sm font-medium text-purple-400 mb-1 capitalize">
+                                      {toolName.replace(/_/g, ' ')}
+                                    </div>
+                                    <div className="text-xs text-gray-400">
+                                      {Object.entries(params).map(([key, value], paramIdx) => (
+                                        <div key={paramIdx} className="flex justify-between">
+                                          <span className="capitalize">{key.replace(/_/g, ' ')}:</span>
+                                          <span className="font-mono text-green-400">
+                                            {Array.isArray(value) ? value.join(', ') : String(value)}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

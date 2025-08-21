@@ -50,7 +50,6 @@ def _get_price_data_for_charts(symbol: str, timeframe: str = "1d", days_back: in
             return None
         return df
     except Exception as e:
-        print(f"Error fetching price data: {e}")
         return None
 
 def _create_chart_base64(fig) -> str:
@@ -211,7 +210,6 @@ def calculate_comprehensive_technical_analysis(symbol_or_name: str, timeframe: s
         return analysis
         
     except Exception as e:
-        print(f"Error in technical analysis: {e}")
         return {"error": str(e)}
 
 @function_tool
@@ -295,7 +293,6 @@ def analyze_candlestick_patterns(symbol_or_name: str, timeframe: str = "1d", day
         }
         
     except Exception as e:
-        print(f"Error in candlestick pattern analysis: {e}")
         return {"error": str(e)}
 
 def _create_comprehensive_chart(data: pd.DataFrame, symbol: str, analysis: dict) -> str:

@@ -63,10 +63,13 @@ const useChatStore = create(devtools((set, get) => ({
       const data = await response.json();
       console.log('Response data:', data);
       
-      // Add assistant response
+      // Add assistant response - handle both new enhanced format and legacy format
+      const responseContent = data.content || data.answer || 'No response received';
       addMessage({
         role: 'assistant',
-        content: data.answer, // Fixed: backend returns 'answer' not 'response'
+        content: responseContent,
+        analysis_parameters: data.analysis_parameters || {},
+        response_type: data.response_type || 'text',
         userId,
         chatId
       });

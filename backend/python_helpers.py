@@ -7,20 +7,98 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from dotenv import load_dotenv
+import pymongo
 
 load_dotenv()
 
+def search_nse_symbol_by_name(company_name: str) -> str | None:
+	"""
+	Search for NSE stock symbol using company name from our MongoDB collection with regex matching.
+	Uses progressive search strategies for better matching.
+	Args:
+		company_name: The company name to search for.
+	Returns:
+		The best matching symbol if found, else None.
+	"""
+	try:
+		# Connect to MongoDB
+		mongo_uri = os.getenv('MONGO_URI', 'mongodb://localhost:27017')
+		database_name = os.getenv('DB_NAME', 'chatbotdb')
+		
+		client = pymongo.MongoClient(mongo_uri)
+		db = client[database_name]
+		collection = db['stock_companies']
+		
+		# Strategy 1: Exact case-insensitive match
+		company = collection.find_one(
+			{
+				'$and': [
+					{'exchange_type': 'NSE'},
+					{'name': {'$regex': f'^{company_name}$', '$options': 'i'}}
+				]
+			},
+			{'name': 1, 'symbol': 1, '_id': 0}
+		)
+		
+		if company:
+			return company['symbol']
+		
+		# Strategy 2: Contains match (case-insensitive)
+		company = collection.find_one(
+			{
+				'$and': [
+					{'exchange_type': 'NSE'},
+					{'name': {'$regex': company_name, '$options': 'i'}}
+				]
+			},
+			{'name': 1, 'symbol': 1, '_id': 0}
+		)
+		
+		if company:
+			return company['symbol']
+		
+		# Strategy 3: Word boundary match (for partial names like "Reliance")
+		words = company_name.split()
+		if len(words) > 1:
+			# Try matching with the first word
+			first_word = words[0]
+			company = collection.find_one(
+				{
+					'$and': [
+						{'exchange_type': 'NSE'},
+						{'name': {'$regex': f'\\b{first_word}\\b', '$options': 'i'}}
+					]
+				},
+				{'name': 1, 'symbol': 1, '_id': 0}
+			)
+			
+			if company:
+				return company['symbol']
+		
+		return None
+		
+	except Exception as e:
+		return None
+	finally:
+		if 'client' in locals():
+			client.close()
+
 def search_symbol(query: str) -> str | None:
 	"""
-	Search for stock symbol using Financial Modeling Prep API.
+	Search for stock symbol using our NSE MongoDB collection first, then fallback to FMP API.
 	Args:
 		query: The company name or partial symbol to search for.
 	Returns:
 		The best matching symbol if found, else None.
 	"""
+	# First try searching in our NSE collection by company name
+	nse_symbol = search_nse_symbol_by_name(query)
+	if nse_symbol:
+		return nse_symbol
+	
+	# Fallback to FMP API search if not found in NSE collection
 	fmp_api_key = os.getenv("FMP_API_KEY")
 	if not fmp_api_key:
-		print("FMP API key not configured")
 		return None
 		
 	try:
@@ -42,7 +120,6 @@ def search_symbol(query: str) -> str | None:
 		return data[0].get('symbol')
 		
 	except Exception as e:
-		print(f"Error searching symbol: {e}")
 		return None
 
 def get_fmp_price_data(symbol: str, timeframe: str = "1d", days_back: int = 252, return_format: str = "dict") -> dict | pd.DataFrame | None:
@@ -131,7 +208,6 @@ def get_fmp_price_data(symbol: str, timeframe: str = "1d", days_back: int = 252,
 			}
 		
 	except Exception as e:
-		print(f"Error fetching FMP price data: {e}")
 		return {"error": str(e)} if return_format == "dict" else None
 
 def get_co_code(company_name: str, api_key: str) -> float | None:
@@ -161,5 +237,4 @@ def get_co_code(company_name: str, api_key: str) -> float | None:
 			return next((item.get("co_code") for item in data if item["companyname"] == match_name), None)
 		return None
 	except Exception as e:
-		print(f"Error fetching co_code: {e}")
 		return None

@@ -14,22 +14,25 @@ from logger_config import app_logger
 class MongoConversationMemory:
     """MongoDB-based conversation memory storage."""
     
-    def __init__(self, connection_string: str = None, db_name: str = "financial_agent"):
+    def __init__(self, connection_string: str = None, db_name: str = None):
         """Initialize MongoDB connection.
         
         Args:
-            connection_string: MongoDB connection string. If None, uses MONGO_URL env var
-            db_name: Database name for storing conversations
+            connection_string: MongoDB connection string. If None, uses MONGO_URI env var
+            db_name: Database name for storing conversations. If None, uses DB_NAME env var
         """
         if connection_string is None:
-            connection_string = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
+            connection_string = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+        
+        if db_name is None:
+            db_name = os.getenv("DB_NAME", "chatbotdb")
         
         self.client = MongoClient(connection_string)
         self.db = self.client[db_name]
-        self.conversations = self.db.conversations
+        self.messages = self.db.messages
         
         # Create index for efficient queries
-        self.conversations.create_index([("user_id", 1), ("chat_id", 1), ("timestamp", 1)])
+        self.messages.create_index([("user_id", 1), ("chat_id", 1), ("ts", 1)])
         
         app_logger.info(f"MongoDB connection established to {db_name}")
     
@@ -55,11 +58,11 @@ class MongoConversationMemory:
             "user_id": user_id,
             "chat_id": chat_id,
             "role": role,
-            "content": content,
-            "timestamp": datetime.now(timezone.utc)
+            "text": content,
+            "ts": datetime.now(timezone.utc)
         }
         
-        result = self.conversations.insert_one(message)
+        result = self.messages.insert_one(message)
         app_logger.info(f"Added {role} message for {user_id}/{chat_id}: {content[:50]}...")
         
         return str(result.inserted_id)
@@ -80,15 +83,15 @@ class MongoConversationMemory:
         Returns:
             List of conversation messages in TResponseInputItem format
         """
-        cursor = self.conversations.find(
+        cursor = self.messages.find(
             {"user_id": user_id, "chat_id": chat_id}
-        ).sort("timestamp", 1).limit(limit)
+        ).sort("ts", 1).limit(limit)
         
         conversation = []
         for msg in cursor:
             conversation.append({
                 "role": msg["role"],
-                "content": msg["content"]
+                "content": msg["text"]
             })
         
         app_logger.info(f"Retrieved {len(conversation)} messages for {user_id}/{chat_id}")
@@ -104,7 +107,7 @@ class MongoConversationMemory:
         Returns:
             Number of deleted messages
         """
-        result = self.conversations.delete_many(
+        result = self.messages.delete_many(
             {"user_id": user_id, "chat_id": chat_id}
         )
         
@@ -121,7 +124,7 @@ class MongoConversationMemory:
         Returns:
             Number of messages in the conversation
         """
-        count = self.conversations.count_documents(
+        count = self.messages.count_documents(
             {"user_id": user_id, "chat_id": chat_id}
         )
         
@@ -141,14 +144,14 @@ class MongoConversationMemory:
             {"$match": {"user_id": user_id}},
             {"$group": {
                 "_id": {"chat_id": "$chat_id"},
-                "last_message": {"$max": "$timestamp"},
+                "last_message": {"$max": "$ts"},
                 "message_count": {"$sum": 1}
             }},
             {"$sort": {"last_message": -1}},
             {"$limit": limit}
         ]
         
-        conversations = list(self.conversations.aggregate(pipeline))
+        conversations = list(self.messages.aggregate(pipeline))
         app_logger.info(f"Retrieved {len(conversations)} recent conversations for {user_id}")
         
         return [

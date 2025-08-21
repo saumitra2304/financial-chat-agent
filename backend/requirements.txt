@@ -27,4 +27,9 @@ tsfresh
 
 # Additional Dependencies
 matplotlib
+seaborn
+plotly
+kaleido
 xlsxwriter
+schedule
+pytz
