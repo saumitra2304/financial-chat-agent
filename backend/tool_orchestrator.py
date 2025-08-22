@@ -27,17 +27,12 @@ class ToolOrchestrator:
                 'get_shareholding'
             },
             'quantitative_analysis': {
-                'get_historical_price_data',
-                'calculate_volatility_metrics',
-                'calculate_correlation_analysis',
-                'calculate_advanced_statistics',
-                'calculate_monte_carlo_simulation',
-                'calculate_options_metrics',
                 'adv_get_historical_price_data',
                 'adv_calculate_volatility_metrics',
                 'adv_calculate_correlation_analysis', 
                 'adv_calculate_advanced_statistics',
                 'adv_calculate_monte_carlo_simulation',
+                'calculate_options_metrics',
                 'calculate_portfolio_optimization',
                 'calculate_garch_volatility_models',
                 'calculate_pca_decomposition',
@@ -56,13 +51,12 @@ class ToolOrchestrator:
                 'calculate_comprehensive_technical_analysis',
                 'analyze_candlestick_patterns',
                 'create_stock_charts',
-                'get_historical_price_data'
+                'adv_get_historical_price_data'
             },
             'portfolio_analysis': {
                 'get_user_portfolio',
                 'create_portfolio_charts',
                 'calculate_portfolio_optimization',
-                'calculate_correlation_analysis',
                 'adv_calculate_correlation_analysis'
             },
             'visualization': {

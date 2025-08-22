@@ -30,22 +30,16 @@ from tools.finance_tool import (
     get_valuation_ratios,
 )
 from tools.portfolio_tool import get_user_portfolio
-from tools.quant_analysis_tool import (
-    verify_company_symbol,
-    get_historical_price_data,
-    calculate_volatility_metrics,
-    calculate_correlation_analysis,
-    calculate_advanced_statistics,
-    calculate_monte_carlo_simulation,
-    calculate_options_metrics,
-)
 from tools.advanced_quant_tools import (
     verify_stock_for_advanced_analysis,
+    get_returns_methodology_guide,
+    get_portfolio_optimization_objectives_guide,
     get_historical_price_data as adv_get_historical_price_data,
     calculate_volatility_metrics as adv_calculate_volatility_metrics,
     calculate_correlation_analysis as adv_calculate_correlation_analysis,
     calculate_advanced_statistics as adv_calculate_advanced_statistics,
     calculate_monte_carlo_simulation as adv_calculate_monte_carlo_simulation,
+    calculate_options_metrics,
     calculate_portfolio_optimization,
     calculate_garch_volatility_models,
     calculate_pca_decomposition,
@@ -138,8 +132,10 @@ async def chat(req: ChatRequest):
             search_and_confirm_stock,
             proceed_with_confirmed_symbol,
             confirm_stock_symbol,
-            verify_company_symbol,
             verify_stock_for_advanced_analysis,
+            # Professional Methodology Guides (IMPORTANT: Use for proper return methodology and optimization objectives)
+            get_returns_methodology_guide,
+            get_portfolio_optimization_objectives_guide,
             # Fundamental Analysis Tools
             get_ttm_ratios,
             get_quarterly_results,
@@ -155,14 +151,10 @@ async def chat(req: ChatRequest):
             get_cashflow_ratios,
             get_growth_ratios,
             get_user_portfolio,
-            # Basic Quantitative Analysis Tools
-            get_historical_price_data,
-            calculate_volatility_metrics,
-            calculate_correlation_analysis,
-            calculate_advanced_statistics,
-            calculate_monte_carlo_simulation,
+            # Company verification and options tools
+            verify_stock_for_advanced_analysis,
             calculate_options_metrics,
-            # Professional Quantitative Finance Tools (with column name fixes)
+            # Professional Quantitative Finance Tools
             adv_get_historical_price_data,
             adv_calculate_volatility_metrics,
             adv_calculate_correlation_analysis,
